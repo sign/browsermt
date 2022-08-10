@@ -24,7 +24,6 @@ async function main() {
   await esbuild({
     ...baseConfig,
     format: "esm",
-    watch: true,
     outdir: path.join(__dirname, "../build/esm"),
     entryPoints,
   });
