@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Mozilla Translations</title>
+    <link rel="stylesheet" href="index.css" />
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+  </head>
+  <body>
+    <div class="app">
+      <div class="panel panel--from">
+        <label>
+          From
+          <select id="lang-from" name="from" class="lang-select"></select>
+        </label>
+        <textarea id="input" name="input"></textarea>
+      </div>
+      <button class="swap" title="swap">↔️</button>
+      <div class="panel panel--to">
+        <label>
+          To
+          <select id="lang-to" name="to" class="lang-select"></select>
+        </label>
+        <div id="output" class="output-area"></div>
+      </div>
+      <div class="footer" id="status"></div>
+    </div>
+    <script src="https://unpkg.com/comlink/dist/umd/comlink.js"></script>
+    <script src="../../build/esm/main.js"></script>
+  </body>
+</html>
