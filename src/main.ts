@@ -39,7 +39,20 @@ async function main() {
   const response = await fetch(MODEL_REGISTRY);
   const modelRegistry = await response.json();
 
-  const translateCall = () => {
+  // await comlinkWorker.loadModel("en", "bg", modelRegistry);
+  // await comlinkWorker.translate(
+  //   "en",
+  //   "bg",
+  //   ["my test sentence"],
+  //   [
+  //     {
+  //       isQualityScores: true,
+  //       isHtml: false,
+  //     },
+  //   ]
+  // );
+
+  const translateCall = async () => {
     const text = inputEl.value;
     if (!text.trim().length) return;
 
@@ -47,13 +60,24 @@ async function main() {
     const translateOptions = _prepareTranslateOptions(paragraphs);
     const lngFrom = langFromEl.value;
     const lngTo = langToEl.value;
-    worker.postMessage([
-      "translate",
+
+    const results = await comlinkWorker.translate(
       lngFrom,
       lngTo,
       paragraphs,
-      translateOptions,
-    ]);
+      translateOptions
+    );
+    outputEl.innerHTML = ""; // Clear output of previous translation
+
+    // Add each translation in its own div to have a known root in which the
+    // sentence ids are unique. Used for highlighting sentences.
+    for (const translatedHTML of results) {
+      const translation = document.createElement("div");
+      translation.classList.add("translation");
+      translation.innerHTML = translatedHTML;
+      addQualityClasses(translation);
+      outputEl.appendChild(translation);
+    }
   };
 
   const addQualityClasses = (root: HTMLElement) => {
@@ -89,24 +113,6 @@ async function main() {
       });
   };
 
-  worker.onmessage = function (e) {
-    if (e.data[0] === "translate_reply" && e.data[1]) {
-      // Clear output of previous translation
-      outputEl.innerHTML = "";
-
-      // Add each translation in its own div to have a known root in which the
-      // sentence ids are unique. Used for highlighting sentences.
-      e.data[1].forEach((translatedHTML: string) => {
-        // TODO move to translate method
-        const translation = document.createElement("div");
-        translation.classList.add("translation");
-        translation.innerHTML = translatedHTML;
-        addQualityClasses(translation);
-        outputEl.appendChild(translation);
-      });
-    }
-  };
-
   const loadModel = async () => {
     const lngFrom = langFromEl.value;
     const lngTo = langToEl.value;
@@ -116,7 +122,7 @@ async function main() {
       displayStatus(
         await comlinkWorker.loadModel(lngFrom, lngTo, modelRegistry)
       );
-      translateCall();
+      await translateCall();
     } else {
       outputEl.innerHTML = textToHTML(inputEl.value);
     }

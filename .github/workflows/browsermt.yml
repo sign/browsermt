@@ -2,7 +2,7 @@ name: browsermt
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
 
 env:
   NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
