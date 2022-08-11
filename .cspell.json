@@ -1,7 +1,7 @@
 {
   "version": "0.1",
   "language": "en",
-  "words": ["esbuild", "rmrf", "gjuchault", "socio", "octocat", "comlink", "browsermt", "gemm"],
+  "words": ["esbuild", "rmrf", "gjuchault", "socio", "octocat", "comlink", "browsermt", "gemm", "enru", "intgemm"],
   "flagWords": [],
   "ignorePaths": [
     "package.json",
