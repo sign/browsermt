@@ -14,8 +14,10 @@ npm install @sign-mt/browsermt
 
 ```ts
 import {createBergamotWorker} from '@sign-mt/browsermt';
+// OR import {createBergamotWorker} from 'https://unpkg.com/@sign-mt/browsermt@0.0.2/build/bundled/index.js'
 
 const worker = createBergamotWorker('/node_modules/@sign-mt/browsermt/build/esm/worker.js');
+// OR createBergamotWorker('https://unpkg.com/@sign-mt/browsermt@0.0.2/build/bundled/worker.js')
 
 // Copy these artifacts to your deployed folder
 await worker.importBergamotWorker(
@@ -23,7 +25,7 @@ await worker.importBergamotWorker(
   'browsermt/bergamot-translator-worker.wasm',
 );
 
-// Create object with URLs to the mode files
+// Create object with URLs to the model files
 const modelRegistry = {
   enru: {
     model: {name: "/models/enru/model.enru.intgemm.alphas.bin"},
@@ -34,6 +36,6 @@ const modelRegistry = {
 
 await worker.loadModel('en', 'ru', modelRegistry);
 
-const translations = await worker.translate('en', 'ru', ['test sentence', 'other sentence'], {isHtml: false});
+const translations = await worker.translate('en', 'ru', ['test sentence', 'other sentence'], [{isHtml: false}, {isHtml: false}]);
 console.log(translations);
 ```
