@@ -1,5 +1,7 @@
 // import * as Comlink from "https://unpkg.com/comlink/dist/esm/comlink.mjs";
 
+import { createBergamotWorker, ModelRegistry } from "./index";
+
 const statusEl: HTMLElement = document.querySelector("#status")!;
 const displayStatus = (status: string) => (statusEl.innerText = status);
 
@@ -27,8 +29,7 @@ function textToHTML(text: string): string {
 }
 
 async function main() {
-  const worker: Worker = new Worker("../../build/esm/worker.js");
-  const comlinkWorker = Comlink.wrap(worker);
+  const comlinkWorker = createBergamotWorker("../../build/bundled/worker.js");
 
   await comlinkWorker.importBergamotWorker(
     "../../../artifacts/bergamot-translator-worker.js",
@@ -37,7 +38,13 @@ async function main() {
 
   const MODEL_REGISTRY = "../../example/src/models/registry.json";
   const response = await fetch(MODEL_REGISTRY);
-  const modelRegistry = await response.json();
+  const modelRegistry: ModelRegistry = await response.json();
+  // Model Registry only has names, not paths. So we need to add the path to each entry.
+  for (const [name, model] of Object.entries(modelRegistry)) {
+    for (const file of Object.values(model)) {
+      file.name = `../../example/src/models/${name}/${file.name}`;
+    }
+  }
 
   // await comlinkWorker.loadModel("en", "bg", modelRegistry);
   // await comlinkWorker.translate(
@@ -61,7 +68,7 @@ async function main() {
     const lngFrom = langFromEl.value;
     const lngTo = langToEl.value;
 
-    const results = await comlinkWorker.translate(
+    const results: any[] = await comlinkWorker.translate(
       lngFrom,
       lngTo,
       paragraphs,

@@ -1,35 +1,11 @@
 /// <reference lib="webworker" />
 
-importScripts("https://unpkg.com/comlink/dist/umd/comlink.js");
-declare let Comlink: any;
-Comlink.expose({ importBergamotWorker, loadModel, translate });
+import * as comlink from "comlink";
+import { ModelRegistry, FileInfo, TranslationOptions } from "./index";
 
-interface ModelInfoPiece {
-  estimatedCompressedSize: number;
-  expectedSha256Hash: string;
-  modelType: string;
-  name: string;
-  size: number;
-}
-
-interface ModelInfo {
-  model: ModelInfoPiece;
-  vocab: ModelInfoPiece;
-  lex: ModelInfoPiece;
-  qualityModel: ModelInfoPiece;
-}
-
-type ModelRegistry = Record<string, ModelInfo>;
+comlink.expose({ importBergamotWorker, loadModel, translate });
 
 const timing: Record<string, number> = { workerStart: Date.now() };
-
-// Information corresponding to each file type
-type FileType = "model" | "lex" | "vocab" | "qualityModel";
-
-interface FileInfo {
-  type: FileType;
-  alignment: number;
-}
 
 const FILE_INFO: FileInfo[] = [
   { type: "model", alignment: 256 },
@@ -124,11 +100,6 @@ async function loadModel(
   }
 }
 
-interface TranslationOptions {
-  isHtml?: boolean;
-  isQualityScores?: boolean;
-}
-
 function translate(
   from: string,
   to: string,
@@ -162,7 +133,6 @@ function translate(
 // A map of language-pair to TranslationModel object
 const languagePairToTranslationModels = new Map();
 
-const MODEL_ROOT_URL = "./../../example/src/models/";
 const PIVOT_LANGUAGE = "en";
 
 onmessage = async function (e) {
@@ -316,9 +286,7 @@ async function prepareAlignedMemory(
   languagePair: string,
   modelRegistry: ModelRegistry
 ) {
-  const fileName = `${MODEL_ROOT_URL}/${languagePair}/${
-    modelRegistry[languagePair][file.type].name
-  }`;
+  const fileName = modelRegistry[languagePair][file.type].name;
   const buffer = await _downloadAsArrayBuffer(fileName);
   const alignedMemory = await _prepareAlignedMemoryFromBuffer(
     buffer,
