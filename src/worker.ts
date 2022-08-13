@@ -1,17 +1,20 @@
 /// <reference lib="webworker" />
 
-import * as comlink from "comlink";
-import { ModelRegistry, FileInfo, TranslationOptions } from "./index";
+import {IncomingMessage} from 'http';
 
-comlink.expose({ importBergamotWorker, loadModel, translate });
+import {isNode} from 'browser-or-node';
+import * as comlink from 'comlink';
+import {FileInfo, ModelRegistry, TranslationOptions} from './index';
 
-const timing: Record<string, number> = { workerStart: Date.now() };
+comlink.expose({importBergamotWorker, loadModel, translate});
+
+const timing: Record<string, number> = {workerStart: Date.now()};
 
 const FILE_INFO: FileInfo[] = [
-  { type: "model", alignment: 256 },
-  { type: "lex", alignment: 64 },
-  { type: "vocab", alignment: 64 },
-  { type: "qualityModel", alignment: 64 },
+  {type: 'model', alignment: 256},
+  {type: 'lex', alignment: 64},
+  {type: 'vocab', alignment: 64},
+  {type: 'qualityModel', alignment: 64},
 ];
 
 function log(...args: any[]) {
@@ -28,7 +31,7 @@ interface TranslationServiceConfig {
 }
 
 interface TranslationService {
-  new (config: TranslationServiceConfig): TranslationService;
+  new(config: TranslationServiceConfig): TranslationService;
 
   translateViaPivoting: (
     translationModelSrcToPivot: any,
@@ -54,10 +57,10 @@ const runtimeInitializedPromise = new Promise(
 // bergamot-translator-worker.js expects a "Module" object to be available
 let workerWasmFilePath: string;
 
-var Module: { [key: string]: any; BlockingService: TranslationService } = {
+(globalThis as any).Module = {
   preRun: [
     () => {
-      logTime("workerStart", "Time until Module.preRun");
+      logTime('workerStart', 'Time until Module.preRun');
       timing.moduleLoadStart = Date.now();
     },
   ],
@@ -68,16 +71,28 @@ var Module: { [key: string]: any; BlockingService: TranslationService } = {
 
   onRuntimeInitialized: async () => {
     logTime(
-      "moduleLoadStart",
-      "Wasm Runtime initialized Successfully (preRun -> onRuntimeInitialized)"
+      'moduleLoadStart',
+      'Wasm Runtime initialized Successfully (preRun -> onRuntimeInitialized)'
     );
     runtimeInitializedPromiseResolve();
   },
 } as any;
 
-async function importBergamotWorker(jsFilePath: string, wasmFilePath: string) {
-  workerWasmFilePath = wasmFilePath;
-  importScripts(jsFilePath);
+async function importBergamotWorker(jsFilePath: string, wasmFilePath: string | Buffer) {
+  if (typeof wasmFilePath === 'string') {
+    workerWasmFilePath = wasmFilePath;
+  } else {
+    (globalThis as any).Module.wasmBinary = wasmFilePath;
+  }
+
+  if (isNode) {
+    const fs = require('fs');
+    const code = fs.readFileSync(jsFilePath, 'utf-8');
+    const vm = require('vm');
+    vm.runInThisContext(code);
+  } else {
+    importScripts(jsFilePath);
+  }
   await runtimeInitializedPromise;
 }
 
@@ -91,12 +106,12 @@ async function loadModel(
   try {
     await constructTranslationService();
     await constructTranslationModel(from, to, modelRegistry);
-    logTime("loadModelStart", `Model '${from}-${to}' successfully constructed`);
-    return "Model successfully loaded";
+    logTime('loadModelStart', `Model '${from}-${to}' successfully constructed`);
+    return 'Model successfully loaded';
   } catch (error: any) {
     console.error(error);
     log(`Model '${from}${to}' construction failed:`, error.message);
-    return "Model loading failed";
+    return 'Model loading failed';
   }
 }
 
@@ -133,12 +148,12 @@ function translate(
 // A map of language-pair to TranslationModel object
 const languagePairToTranslationModels = new Map();
 
-const PIVOT_LANGUAGE = "en";
+const PIVOT_LANGUAGE = 'en';
 
 onmessage = async function (e) {
   const command = e.data[0];
   log(`Message '${command}' received from main script`);
-  if (command === "translate") {
+  if (command === 'translate') {
     const from = e.data[1];
     const to = e.data[2];
     const input = e.data[3];
@@ -153,9 +168,9 @@ onmessage = async function (e) {
 // Instantiates the Translation Service
 const constructTranslationService = async () => {
   if (!translationService) {
-    const config: TranslationServiceConfig = { cacheSize: 20000 };
+    const config: TranslationServiceConfig = {cacheSize: 20000};
     log(`Creating Translation Service with config`, config);
-    translationService = new Module.BlockingService(config);
+    translationService = new (globalThis as any).Module.BlockingService(config);
     log(`Translation Service created successfully`);
   }
 };
@@ -255,8 +270,28 @@ const _translate = (
   }
 };
 
+const _downloadAsArrayBufferNode = async (url: string): Promise<ArrayBuffer> => {
+  const module = url.split('://')[0];
+  const https = require(module);
+  return new Promise((resolve, reject) => {
+    https.get(url, (res: IncomingMessage) => {
+      const chunks: Buffer[] = [];
+      res.on('error', reject);
+      res.on('data', chunk => chunks.push(chunk));
+      res.on('end', async () => {
+        const {Blob} = require('buffer');
+        const data = new Blob(chunks);
+        data.arrayBuffer().then(resolve, reject);
+      });
+    });
+  });
+};
+
 // Downloads file from a url and returns the array buffer
-const _downloadAsArrayBuffer = async (url: string) => {
+const _downloadAsArrayBuffer = async (url: string): Promise<ArrayBuffer> => {
+  if (isNode) {
+    return _downloadAsArrayBufferNode(url);
+  }
   const response = await fetch(url);
   if (!response.ok) {
     throw Error(
@@ -272,7 +307,7 @@ const _prepareAlignedMemoryFromBuffer = async (
   alignmentSize: number
 ) => {
   const byteArray = new Int8Array(buffer);
-  const alignedMemory = new Module.AlignedMemory(
+  const alignedMemory = new (globalThis as any).Module.AlignedMemory(
     byteArray.byteLength,
     alignmentSize
   );
@@ -294,7 +329,7 @@ async function prepareAlignedMemory(
   );
   log(
     file.type,
-    "aligned memory prepared. Size:${alignedMemory.size()} bytes, alignment:",
+    'aligned memory prepared. Size:${alignedMemory.size()} bytes, alignment:',
     file.alignment
   );
   return alignedMemory;
@@ -336,12 +371,12 @@ alignment: soft
   log(
     `Aligned memory sizes: Model:${alignedMemories[0].size()} Shortlist:${alignedMemories[1].size()} Vocab:${alignedMemories[2].size()}`
   );
-  const alignedVocabMemoryList = new Module.AlignedMemoryList();
+  const alignedVocabMemoryList = new (globalThis as any).Module.AlignedMemoryList();
   alignedVocabMemoryList.push_back(alignedMemories[2]);
   let translationModel;
   if (alignedMemories.length === FILE_INFO.length) {
     log(`QE:${alignedMemories[3].size()}`);
-    translationModel = new Module.TranslationModel(
+    translationModel = new (globalThis as any).Module.TranslationModel(
       modelConfig,
       alignedMemories[0],
       alignedMemories[1],
@@ -349,7 +384,7 @@ alignment: soft
       alignedMemories[3]
     );
   } else {
-    translationModel = new Module.TranslationModel(
+    translationModel = new (globalThis as any).Module.TranslationModel(
       modelConfig,
       alignedMemories[0],
       alignedMemories[1],
@@ -413,7 +448,7 @@ const _parseSourceTextSentences = (vectorResponse: ResponseVector) => {
 };
 
 const _prepareResponseOptions = (translateOptions: TranslationOptions[]) => {
-  const vectorResponseOptions = new Module.VectorResponseOptions();
+  const vectorResponseOptions = new (globalThis as any).Module.VectorResponseOptions();
   translateOptions.forEach((translateOption) => {
     vectorResponseOptions.push_back({
       qualityScores: translateOption.isQualityScores,
@@ -429,10 +464,10 @@ const _prepareResponseOptions = (translateOptions: TranslationOptions[]) => {
 };
 
 const _prepareSourceText = (input: string[]) => {
-  const vectorSourceText = new Module.VectorString();
+  const vectorSourceText = new (globalThis as any).Module.VectorString();
   input.forEach((paragraph) => {
     // prevent empty paragraph - it breaks the translation
-    if (paragraph.trim() === "") {
+    if (paragraph.trim() === '') {
       return;
     }
     vectorSourceText.push_back(paragraph.trim());
@@ -512,6 +547,6 @@ const _getSubString = (
 function _wordsCount(sentence: string) {
   return sentence
     .trim()
-    .split(" ")
-    .filter((word) => word.trim() !== "").length;
+    .split(' ')
+    .filter((word) => word.trim() !== '').length;
 }

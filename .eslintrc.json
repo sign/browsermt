@@ -60,6 +60,7 @@
     "@typescript-eslint/no-misused-new": "off",
     "@typescript-eslint/no-misused-promises": "off",
     "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/no-var-requires": "off",
     "no-var": "off"
   }
 }
