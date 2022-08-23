@@ -8,14 +8,8 @@
   "parserOptions": {
     "project": "./tsconfig.lint.json"
   },
-  "plugins": [
-    "import",
-    "@typescript-eslint"
-  ],
-  "ignorePatterns": [
-    "scripts/*",
-    "esbuild-hook.js"
-  ],
+  "plugins": ["import", "@typescript-eslint"],
+  "ignorePatterns": ["scripts/*", "esbuild-hook.js"],
   "extends": [
     "eslint:recommended",
     "plugin:eslint-comments/recommended",
@@ -61,6 +55,7 @@
     "@typescript-eslint/no-misused-promises": "off",
     "@typescript-eslint/ban-ts-comment": "off",
     "@typescript-eslint/no-var-requires": "off",
+    "@typescript-eslint/no-unused-vars": "off",
     "no-var": "off"
   }
 }

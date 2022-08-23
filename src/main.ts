@@ -165,11 +165,14 @@ async function main() {
   async function init() {
     const langs: string[] = Array.from(
       new Set(
-        Object.keys(modelRegistry).reduce(
+        Object.keys(modelRegistry).reduce((acc, key) => {
+          const middle = Math.round(key.length / 2);
           // @ts-expect-error
-          (acc, key) => acc.concat([key.substring(0, 2), key.substring(2, 4)]),
-          []
-        )
+          return acc.concat([
+            key.substring(0, middle),
+            key.substring(middle, key.length),
+          ]);
+        }, [])
       )
     );
     const langNames = new Intl.DisplayNames(undefined, { type: "language" });
@@ -185,18 +188,20 @@ async function main() {
       langToEl.innerHTML += `<option value="${code}">${name}</option>`;
     });
 
-    // try to guess input language from user agent
-    let myLang = "navigator" in globalThis ? navigator.language : "";
-    if (myLang) {
-      myLang = myLang.split("-")[0];
-      if (langs.includes(myLang)) {
-        console.log("guessing input language is", myLang);
-        langFromEl.value = myLang;
-      }
-    }
-
-    // find first output lang that *isn't* input language
-    langToEl.value = langs.find((code) => code !== langFromEl.value)!;
+    langFromEl.value = "spoken";
+    langToEl.value = "signed";
+    // // try to guess input language from user agent
+    // let myLang = "navigator" in globalThis ? navigator.language : "";
+    // if (myLang) {
+    //   myLang = myLang.split("-")[0];
+    //   if (langs.includes(myLang)) {
+    //     console.log("guessing input language is", myLang);
+    //     langFromEl.value = myLang;
+    //   }
+    // }
+    //
+    // // find first output lang that *isn't* input language
+    // langToEl.value = langs.find((code) => code !== langFromEl.value)!;
 
     // load this model
     await loadModel();

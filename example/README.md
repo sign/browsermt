@@ -1,7 +1,7 @@
 # Example
 
 To get models for the example, run:
-    
+
 ```bash
 git clone --depth 1 --branch main --single-branch https://github.com/mozilla/firefox-translations-models/
 mkdir models

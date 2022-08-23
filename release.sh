@@ -7,10 +7,10 @@ npm audit
 npm run build
 
 # Format check
-npm run format:check
+npm run format
 
 # Lint check
-npm run lint:check
+npm run lint
 
 # Spell check
 npm run spell:check
