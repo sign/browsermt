@@ -1,6 +1,6 @@
 {
   "name": "@sign-mt/browsermt",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "browsermt inference code",
   "keywords": [
     "browsermt",
