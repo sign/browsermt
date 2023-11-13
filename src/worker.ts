@@ -388,13 +388,13 @@ const _constructTranslationModelHelper = async (
     Vocab files are re-used in both translation directions.
     DO NOT CHANGE THE SPACES BETWEEN EACH ENTRY OF CONFIG
   */
-  const modelConfig = `beam-size: 1
+  const modelConfig = `beam-size: 5
 normalize: 1.0
 word-penalty: 0
 max-length-break: 128
 mini-batch-words: 1024
 workspace: 128
-max-length-factor: 2.0
+max-length-factor: 100
 skip-cost: false
 cpu-threads: 0
 quiet: true
