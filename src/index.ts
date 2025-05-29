@@ -10,7 +10,9 @@ interface ModelInfoPiece {
 
 interface ModelInfo {
   model: ModelInfoPiece;
-  vocab: ModelInfoPiece;
+  vocab?: ModelInfoPiece;
+  srcvocab?: ModelInfoPiece;
+  trgvocab?: ModelInfoPiece;
   lex: ModelInfoPiece;
   qualityModel: ModelInfoPiece;
 }
@@ -18,7 +20,7 @@ interface ModelInfo {
 export type ModelRegistry = Record<string, ModelInfo>;
 
 // Information corresponding to each file type
-type FileType = "model" | "lex" | "vocab" | "qualityModel";
+type FileType = "model" | "lex" | "vocab" | "srcvocab" | "trgvocab" | "qualityModel";
 
 export interface FileInfo {
   type: FileType;
