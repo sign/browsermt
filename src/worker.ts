@@ -14,6 +14,8 @@ const FILE_INFO: FileInfo[] = [
   { type: "model", alignment: 256 },
   { type: "lex", alignment: 64 },
   { type: "vocab", alignment: 64 },
+  { type: "srcvocab", alignment: 64 },
+  { type: "trgvocab", alignment: 64 },
   { type: "qualityModel", alignment: 64 },
 ];
 
@@ -361,7 +363,7 @@ async function prepareAlignedMemory(
   languagePair: string,
   modelRegistry: ModelRegistry
 ) {
-  const fileName = modelRegistry[languagePair][file.type].name;
+  const fileName = modelRegistry[languagePair][file.type]!.name;
   const buffer = await _downloadAsArrayBuffer(fileName);
   const alignedMemory = await _prepareAlignedMemoryFromBuffer(
     buffer,
@@ -405,39 +407,47 @@ gemm-precision: int8shiftAlphaAll
 alignment: soft
 `;
 
-  const alignedMemories = await Promise.all(
+  const alignedMemories = Object.fromEntries(await Promise.all(
     FILE_INFO.filter((file) => file.type in modelRegistry[languagePair]).map(
-      (file) => prepareAlignedMemory(file, languagePair, modelRegistry)
+      async (file) => [file.type, await prepareAlignedMemory(file, languagePair, modelRegistry)]
     )
-  );
+  ));
 
-  log(`Translation Model config: ${modelConfig}`);
-  log(
-    `Aligned memory sizes: Model:${alignedMemories[0].size()} Shortlist:${alignedMemories[1].size()} Vocab:${alignedMemories[2].size()}`
-  );
   const alignedVocabMemoryList = new (
     globalThis as any
   ).Module.AlignedMemoryList();
-  alignedVocabMemoryList.push_back(alignedMemories[2]);
-  let translationModel;
-  if (alignedMemories.length === FILE_INFO.length) {
-    log(`QE:${alignedMemories[3].size()}`);
-    translationModel = new (globalThis as any).Module.TranslationModel(
-      modelConfig,
-      alignedMemories[0],
-      alignedMemories[1],
-      alignedVocabMemoryList,
-      alignedMemories[3]
-    );
+
+  if (alignedMemories.vocab) {
+    alignedVocabMemoryList.push_back(alignedMemories.vocab);
   } else {
-    translationModel = new (globalThis as any).Module.TranslationModel(
-      modelConfig,
-      alignedMemories[0],
-      alignedMemories[1],
-      alignedVocabMemoryList,
-      null
-    );
+    if (alignedMemories.srcvocab) {
+      alignedVocabMemoryList.push_back(alignedMemories.srcvocab);
+    }
+    if (alignedMemories.trgvocab) {
+      alignedVocabMemoryList.push_back(alignedMemories.trgvocab);
+    }
   }
+  let vocabMemSize = 0;
+  for (let i = 0; i < alignedVocabMemoryList.size(); i++) {
+    vocabMemSize += alignedVocabMemoryList.get(i).size();
+  }
+
+  log(`Translation Model config: ${modelConfig}`);
+  log(
+    `Aligned memory sizes: Model:${alignedMemories.model.size()} Shortlist:${alignedMemories.lex.size()} Vocab:${vocabMemSize}`
+  );
+  let translationModel;
+  if (alignedMemories.qualityModel) {
+    log(`QE:${alignedMemories[3].size()}`);
+  }
+  translationModel = new (globalThis as any).Module.TranslationModel(
+    modelConfig,
+    alignedMemories.model,
+    alignedMemories.lex,
+    alignedVocabMemoryList,
+    alignedMemories.qualityModel || null,
+  );
+
   languagePairToTranslationModels.set(languagePair, translationModel);
 };
 
